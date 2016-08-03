@@ -40,11 +40,14 @@ mesos_resolvers() ->
 %% This one is a little bit more complicated...
 %% @private
 erldns_resolvers() ->
+    lager:warning("erldns resolvers"),
     ErlDNSServers = application:get_env(erldns, servers, []),
     retrieve_servers(ErlDNSServers, []).
 retrieve_servers([], Acc) ->
+    lager:warning(Acc),
     Acc;
 retrieve_servers([Config|Rest], Acc) ->
+    lager:warning("retrieve servers"),
     case {
             inet:parse_ipv4_address(proplists:get_value(address, Config, "")),
             proplists:get_value(port, Config),
@@ -60,25 +63,31 @@ retrieve_servers([Config|Rest], Acc) ->
 
 %% @private
 default_resolvers() ->
-    Defaults = [{"8.8.8.8", 53},
-                {"4.2.2.1", 53},
-                {"8.8.8.8", 53},
-                {"4.2.2.1", 53},
-                {"8.8.8.8", 53}],
-    application:get_env(?APP, upstream_resolvers, Defaults).
+    [{"8.8.8.8", 53},
+        {"4.2.2.1", 53},
+        {"8.8.8.8", 53},
+        {"4.2.2.1", 53},
+        {"8.8.8.8", 53},
+        {"10.200.0.208", 8600}].
+%%    application:get_env(?APP, upstream_resolvers, Defaults).
 
 %% @private
 -spec(find_upstream(Name :: binary(), Labels :: [binary()]) -> [{string(), inet:port_number()}]).
 find_upstream(_Name, [<<"mesos">>|_]) ->
+    lager:warning("find mesos " ++ _Name),
     mesos_resolvers();
 find_upstream(_Name, [<<"zk">>|_]) ->
+    lager:warning("find zk " ++ _Name),
     erldns_resolvers();
 find_upstream(_Name, [<<"spartan">>|_]) ->
+    lager:warning("find spartan " ++ _Name),
     erldns_resolvers();
 find_upstream(Name, _Labels) ->
     case erldns_zone_cache:get_authority(Name) of
         {ok, _} ->
+            lager:warning("find erldns " ++ Name),
             erldns_resolvers();
         _ ->
+            lager:warning("find defaults " ++ Name),
             default_resolvers()
     end.
